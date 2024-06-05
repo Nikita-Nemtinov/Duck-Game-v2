@@ -4,6 +4,9 @@
 #include <ctime>
 #include <vector>
 #include <string>
+#include <iostream>
+#include <algorithm>
+
 
 using namespace std;
 
@@ -28,6 +31,7 @@ clock_t startTime;  // Время начала игры
 bool gameWon = false;
 bool gameOver = false;
 double elapsedTime = 0.0;
+bool paused = false;
 
 void drawText(const string& text, float x, float y) {
     glRasterPos2f(x, y);
@@ -51,7 +55,7 @@ void initDucks(int numDucks) {
 
 // Функция для обновления положения уток
 void updateDucks() {
-    if (gameWon || gameOver) {
+    if (gameWon || gameOver || paused) {
         return;
     }
 
@@ -80,6 +84,8 @@ void updateDucks() {
 
     glutPostRedisplay(); // Обновляем окно
 }
+
+
 
 // Функция для отрисовки круга
 void drawCircle(float x, float y, float radius) {
@@ -126,10 +132,11 @@ void drawDucks() {
     }
 }
 
+
 // Функция для обработки кликов мыши
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (ammo > 0 && !gameWon && !gameOver) {
+        if (ammo > 0 && !gameWon && !gameOver && !paused) {
             ammo--; // Уменьшаем количество патронов
             y = windowHeight - y; // Инвертирование координаты y
             for (auto& duck : ducks) {
@@ -138,13 +145,14 @@ void mouse(int button, int state, int x, int y) {
                     score++;
                 }
             }
-            if (ammo == 0 && !gameWon) {
+            if (ammo == 0 && !gameWon && count_if(ducks.begin(), ducks.end(), [](const Duck& duck) { return duck.alive; }) > 0) {
                 gameOver = true;
                 glutIdleFunc(nullptr); // Останавливаем обновление уток
             }
         }
     }
 }
+
 
 // Функция для отрисовки земли
 void drawGround() {
@@ -257,6 +265,9 @@ void drawDog(float x, float y) {
     glRectf(x + 46, y + 26, x + 43, y + 28);
 }
 
+
+
+// Функция для отрисовки
 // Функция для отрисовки
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -281,6 +292,7 @@ void display() {
     // Проверка на проигрыш
     if (gameOver) {
         drawText("Game Over", windowWidth / 2 - 50, windowHeight / 2);
+        cout << "Game Over" << endl; // Добавим отладочный вывод
     }
 
     // Проверка на выигрыш
@@ -289,8 +301,14 @@ void display() {
         drawText("Time: " + to_string(elapsedTime) + " sec", windowWidth / 2 - 50, windowHeight / 2 - 30);
     }
 
+    // Проверка на паузу
+    if (paused) {
+        drawText("Paused", windowWidth / 2 - 30, windowHeight / 2);
+    }
+
     glFlush();
 }
+
 
 // Инициализация OpenGL
 void init() {
@@ -298,6 +316,26 @@ void init() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0.0, windowWidth, 0.0, windowHeight);
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+    case ' ': // Пауза на пробел
+        paused = !paused;
+        if (paused) {
+            glutIdleFunc(nullptr); // Приостанавливаем обновление уток
+        }
+        else {
+            glutIdleFunc(updateDucks); // Возобновляем обновление уток
+        }
+        break;
+    case 13: // Возобновление игры на Enter
+        paused = false;
+        if (!gameWon && !gameOver) {
+            glutIdleFunc(updateDucks); // Возобновляем обновление уток
+        }
+        break;
+    }
 }
 
 int main(int argc, char** argv) {
@@ -314,6 +352,7 @@ int main(int argc, char** argv) {
     glutDisplayFunc(display);
     glutIdleFunc(updateDucks);
     glutMouseFunc(mouse);
+    glutKeyboardFunc(keyboard); // Добавляем обработку клавиатуры
 
     glutMainLoop();
     return 0;
