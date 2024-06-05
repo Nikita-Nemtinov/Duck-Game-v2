@@ -6,6 +6,7 @@
 #include <string>
 
 using namespace std;
+
 // Размеры окна
 const int windowWidth = 800;
 const int windowHeight = 600;
@@ -23,6 +24,10 @@ int score = 0;
 int ammo = 10;
 const float maxSpeed = 0.1f; // Максимальная скорость уток
 
+clock_t startTime;  // Время начала игры
+bool gameWon = false;
+bool gameOver = false;
+double elapsedTime = 0.0;
 
 void drawText(const string& text, float x, float y) {
     glRasterPos2f(x, y);
@@ -44,9 +49,12 @@ void initDucks(int numDucks) {
     }
 }
 
-
 // Функция для обновления положения уток
 void updateDucks() {
+    if (gameWon || gameOver) {
+        return;
+    }
+
     bool allDucksDead = true;
     for (auto& duck : ducks) {
         if (duck.alive) {
@@ -65,12 +73,13 @@ void updateDucks() {
     }
 
     if (allDucksDead) {
+        gameWon = true;
+        elapsedTime = static_cast<double>(clock() - startTime) / CLOCKS_PER_SEC;
         glutIdleFunc(nullptr); // Останавливаем обновление уток
     }
 
     glutPostRedisplay(); // Обновляем окно
 }
-
 
 // Функция для отрисовки круга
 void drawCircle(float x, float y, float radius) {
@@ -106,7 +115,6 @@ void drawDuck(float x, float y) {
     glColor3f(1.0f, 0.5f, 0.0f); // Оранжевый
     glRectf(x + 25, y + 8, x + 35, y + 13);
     glRectf(x - 5, y - 10, x, y - 20);
-
 }
 
 // Функция для отрисовки всех уток
@@ -121,7 +129,7 @@ void drawDucks() {
 // Функция для обработки кликов мыши
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (ammo > 0) {
+        if (ammo > 0 && !gameWon && !gameOver) {
             ammo--; // Уменьшаем количество патронов
             y = windowHeight - y; // Инвертирование координаты y
             for (auto& duck : ducks) {
@@ -130,11 +138,13 @@ void mouse(int button, int state, int x, int y) {
                     score++;
                 }
             }
+            if (ammo == 0 && !gameWon) {
+                gameOver = true;
+                glutIdleFunc(nullptr); // Останавливаем обновление уток
+            }
         }
     }
 }
-
-
 
 // Функция для отрисовки земли
 void drawGround() {
@@ -150,8 +160,6 @@ void drawGround() {
         float random_y = min_val + std::rand() % (max_val - min_val + 1);
         glRectf(x, 70, x + 5, random_y);
     }
-
-
 }
 
 // Функция для отрисовки дерева
@@ -183,7 +191,7 @@ void drawTree() {
     drawCircle(x - 25, 310, 25);
     drawCircle(x + 25, 310, 25);
 
-    //Второе дерево
+    // Второе дерево
     x = 600;
     glColor3f(0.3f, 0.6f, 0.3f);
     drawCircle(x, 100, 50);
@@ -249,7 +257,6 @@ void drawDog(float x, float y) {
     glRectf(x + 46, y + 26, x + 43, y + 28);
 }
 
-
 // Функция для отрисовки
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -272,29 +279,18 @@ void display() {
     drawText("Ammo: " + to_string(ammo), 700, 50);
 
     // Проверка на проигрыш
-    if (ammo == 0) {
+    if (gameOver) {
         drawText("Game Over", windowWidth / 2 - 50, windowHeight / 2);
-        glutIdleFunc(nullptr); // Останавливаем обновление уток
     }
 
     // Проверка на выигрыш
-    bool allDucksDead = true;
-    for (const auto& duck : ducks) {
-        if (duck.alive) {
-            allDucksDead = false;
-            break;
-        }
-    }
-    if (allDucksDead && ammo > 0) {
+    if (gameWon) {
         drawText("You Win!", windowWidth / 2 - 50, windowHeight / 2);
-        glutIdleFunc(nullptr); // Останавливаем обновление уток
+        drawText("Time: " + to_string(elapsedTime) + " sec", windowWidth / 2 - 50, windowHeight / 2 - 30);
     }
 
     glFlush();
 }
-
-
-
 
 // Инициализация OpenGL
 void init() {
@@ -313,6 +309,7 @@ int main(int argc, char** argv) {
 
     init();
     initDucks(5); // Инициализация 5 уток
+    startTime = clock(); // Запуск таймера
 
     glutDisplayFunc(display);
     glutIdleFunc(updateDucks);
@@ -321,4 +318,3 @@ int main(int argc, char** argv) {
     glutMainLoop();
     return 0;
 }
-
