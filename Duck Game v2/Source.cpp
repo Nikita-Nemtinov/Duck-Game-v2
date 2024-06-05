@@ -20,26 +20,37 @@ struct Duck {
 vector<Duck> ducks;
 
 int score = 0;
+int ammo = 10;
+const float maxSpeed = 0.1f; // Максимальная скорость уток
 
-// Функция для инициализации уток
+
+void drawText(const string& text, float x, float y) {
+    glRasterPos2f(x, y);
+    for (char c : text) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+    }
+}
+
 void initDucks(int numDucks) {
     ducks.clear();
     for (int i = 0; i < numDucks; ++i) {
         Duck duck;
         duck.x = rand() % windowWidth;
         duck.y = rand() % windowHeight / 2 + windowHeight / 2;
-        duck.dx = ((rand() % 2 == 0) ? 1 : -1) * (0.1f + static_cast<float>(rand()) / RAND_MAX);
-        duck.dy = ((rand() % 2 == 0) ? 1 : -1) * (0.1f + static_cast<float>(rand()) / RAND_MAX);
-
+        duck.dx = ((rand() % 2 == 0) ? 1 : -1) * (0.1f + static_cast<float>(rand()) / RAND_MAX * maxSpeed);
+        duck.dy = ((rand() % 2 == 0) ? 1 : -1) * (0.1f + static_cast<float>(rand()) / RAND_MAX * maxSpeed);
         duck.alive = true;
         ducks.push_back(duck);
     }
 }
 
+
 // Функция для обновления положения уток
 void updateDucks() {
+    bool allDucksDead = true;
     for (auto& duck : ducks) {
         if (duck.alive) {
+            allDucksDead = false;
             duck.x += duck.dx;
             duck.y += duck.dy;
 
@@ -52,8 +63,14 @@ void updateDucks() {
             }
         }
     }
+
+    if (allDucksDead) {
+        glutIdleFunc(nullptr); // Останавливаем обновление уток
+    }
+
     glutPostRedisplay(); // Обновляем окно
 }
+
 
 // Функция для отрисовки круга
 void drawCircle(float x, float y, float radius) {
@@ -104,15 +121,20 @@ void drawDucks() {
 // Функция для обработки кликов мыши
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        y = windowHeight - y; // Инвертирование координаты y
-        for (auto& duck : ducks) {
-            if (duck.alive && abs(duck.x - x) < 20 && abs(duck.y - y) < 10) {
-                duck.alive = false;
-                score++;
+        if (ammo > 0) {
+            ammo--; // Уменьшаем количество патронов
+            y = windowHeight - y; // Инвертирование координаты y
+            for (auto& duck : ducks) {
+                if (duck.alive && abs(duck.x - x) < 20 && abs(duck.y - y) < 10) {
+                    duck.alive = false;
+                    score++;
+                }
             }
         }
     }
 }
+
+
 
 // Функция для отрисовки земли
 void drawGround() {
@@ -241,19 +263,36 @@ void display() {
     // Отрисовка земли и травы
     drawGround();
 
-    // Отрисовка всех уток
+    // Отрисовка уток
     drawDucks();
 
-    // Отображение очков
+    // Отображение очков и количества патронов
     glColor3f(1.0f, 1.0f, 1.0f); // Белый цвет
-    glRasterPos2f(10, 10);
-    string scoreStr = "Score: " + to_string(score);
-    for (char c : scoreStr) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+    drawText("Score: " + to_string(score), 50, 50);
+    drawText("Ammo: " + to_string(ammo), 700, 50);
+
+    // Проверка на проигрыш
+    if (ammo == 0) {
+        drawText("Game Over", windowWidth / 2 - 50, windowHeight / 2);
+        glutIdleFunc(nullptr); // Останавливаем обновление уток
+    }
+
+    // Проверка на выигрыш
+    bool allDucksDead = true;
+    for (const auto& duck : ducks) {
+        if (duck.alive) {
+            allDucksDead = false;
+            break;
+        }
+    }
+    if (allDucksDead && ammo > 0) {
+        drawText("You Win!", windowWidth / 2 - 50, windowHeight / 2);
+        glutIdleFunc(nullptr); // Останавливаем обновление уток
     }
 
     glFlush();
 }
+
 
 
 
