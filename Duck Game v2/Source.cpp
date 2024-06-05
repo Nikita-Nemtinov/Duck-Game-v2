@@ -2,11 +2,58 @@
 #include "glut.h"
 #include <cmath>
 #include <ctime>
+#include <vector>
+#include <string>
 
 using namespace std;
 // Размеры окна
 const int windowWidth = 800;
 const int windowHeight = 600;
+
+// Структура для представления утки
+struct Duck {
+    float x, y;     // Позиция утки
+    float dx, dy;   // Направление движения
+    bool alive;     // Состояние утки (жива или мертва)
+};
+
+vector<Duck> ducks;
+
+int score = 0;
+
+// Функция для инициализации уток
+void initDucks(int numDucks) {
+    ducks.clear();
+    for (int i = 0; i < numDucks; ++i) {
+        Duck duck;
+        duck.x = rand() % windowWidth;
+        duck.y = rand() % windowHeight / 2 + windowHeight / 2;
+        duck.dx = ((rand() % 2 == 0) ? 1 : -1) * (0.1f + static_cast<float>(rand()) / RAND_MAX);
+        duck.dy = ((rand() % 2 == 0) ? 1 : -1) * (0.1f + static_cast<float>(rand()) / RAND_MAX);
+
+        duck.alive = true;
+        ducks.push_back(duck);
+    }
+}
+
+// Функция для обновления положения уток
+void updateDucks() {
+    for (auto& duck : ducks) {
+        if (duck.alive) {
+            duck.x += duck.dx;
+            duck.y += duck.dy;
+
+            // Проверка на границы окна
+            if (duck.x < 0 || duck.x > windowWidth) {
+                duck.dx = -duck.dx;
+            }
+            if (duck.y < windowHeight / 2 || duck.y > windowHeight) {
+                duck.dy = -duck.dy;
+            }
+        }
+    }
+    glutPostRedisplay(); // Обновляем окно
+}
 
 // Функция для отрисовки круга
 void drawCircle(float x, float y, float radius) {
@@ -17,6 +64,7 @@ void drawCircle(float x, float y, float radius) {
     }
     glEnd();
 }
+
 // Функция для отрисовки утки
 void drawDuck(float x, float y) {
     // Цвет для тела
@@ -42,6 +90,28 @@ void drawDuck(float x, float y) {
     glRectf(x + 25, y + 8, x + 35, y + 13);
     glRectf(x - 5, y - 10, x, y - 20);
 
+}
+
+// Функция для отрисовки всех уток
+void drawDucks() {
+    for (const auto& duck : ducks) {
+        if (duck.alive) {
+            drawDuck(duck.x, duck.y);
+        }
+    }
+}
+
+// Функция для обработки кликов мыши
+void mouse(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        y = windowHeight - y; // Инвертирование координаты y
+        for (auto& duck : ducks) {
+            if (duck.alive && abs(duck.x - x) < 20 && abs(duck.y - y) < 10) {
+                duck.alive = false;
+                score++;
+            }
+        }
+    }
 }
 
 // Функция для отрисовки земли
@@ -171,12 +241,16 @@ void display() {
     // Отрисовка земли и травы
     drawGround();
 
+    // Отрисовка всех уток
+    drawDucks();
 
-
-    // Отрисовка утки
-    drawDuck(400, 300);
-
-
+    // Отображение очков
+    glColor3f(1.0f, 1.0f, 1.0f); // Белый цвет
+    glRasterPos2f(10, 10);
+    string scoreStr = "Score: " + to_string(score);
+    for (char c : scoreStr) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, c);
+    }
 
     glFlush();
 }
@@ -188,21 +262,24 @@ void init() {
     glClearColor(0.5f, 0.8f, 0.92f, 1.0f); // Цвет фона (голубое небо)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, windowWidth, 0, windowHeight);
+    gluOrtho2D(0.0, windowWidth, 0.0, windowHeight);
 }
 
-// Основная функция
 int main(int argc, char** argv) {
+    srand(static_cast<unsigned int>(time(0)));
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGB);
-
-    glutInitWindowSize(800, 600);
-    glutInitWindowPosition(100, 100);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(windowWidth, windowHeight);
     glutCreateWindow("Duck Hunt");
 
+    init();
+    initDucks(5); // Инициализация 5 уток
 
     glutDisplayFunc(display);
-    init();
+    glutIdleFunc(updateDucks);
+    glutMouseFunc(mouse);
+
     glutMainLoop();
     return 0;
 }
+
