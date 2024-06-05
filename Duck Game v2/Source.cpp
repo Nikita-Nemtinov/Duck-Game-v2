@@ -8,6 +8,7 @@
 #include <algorithm>
 
 
+// Пробел и Enter стоп и запуск игры
 using namespace std;
 
 // Размеры окна
@@ -85,8 +86,6 @@ void updateDucks() {
     glutPostRedisplay(); // Обновляем окно
 }
 
-
-
 // Функция для отрисовки круга
 void drawCircle(float x, float y, float radius) {
     glBegin(GL_TRIANGLE_FAN);
@@ -132,11 +131,10 @@ void drawDucks() {
     }
 }
 
-
 // Функция для обработки кликов мыши
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        if (ammo > 0 && !gameWon && !gameOver && !paused) {
+        if (ammo > 0 && !gameWon && !gameOver) {
             ammo--; // Уменьшаем количество патронов
             y = windowHeight - y; // Инвертирование координаты y
             for (auto& duck : ducks) {
@@ -145,9 +143,9 @@ void mouse(int button, int state, int x, int y) {
                     score++;
                 }
             }
-            if (ammo == 0 && !gameWon && count_if(ducks.begin(), ducks.end(), [](const Duck& duck) { return duck.alive; }) > 0) {
+            if (ammo == 0 && !gameWon) {
                 gameOver = true;
-                glutIdleFunc(nullptr); // Останавливаем обновление уток
+                glutPostRedisplay(); // Обновляем окно для отображения сообщения
             }
         }
     }
@@ -264,8 +262,6 @@ void drawDog(float x, float y) {
     glRectf(x + 48, y + 20, x + 50, y + 26);
     glRectf(x + 46, y + 26, x + 43, y + 28);
 }
-
-
 
 // Функция для отрисовки
 // Функция для отрисовки
