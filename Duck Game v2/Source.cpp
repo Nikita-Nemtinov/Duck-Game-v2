@@ -80,11 +80,11 @@ void updateDucks() {
     if (allDucksDead) {
         gameWon = true;
         elapsedTime = static_cast<double>(clock() - startTime) / CLOCKS_PER_SEC;
-        glutIdleFunc(nullptr); // Останавливаем обновление уток
     }
 
     glutPostRedisplay(); // Обновляем окно
 }
+
 
 // Функция для отрисовки круга
 void drawCircle(float x, float y, float radius) {
@@ -132,6 +132,7 @@ void drawDucks() {
 }
 
 // Функция для обработки кликов мыши
+// Функция для обработки кликов мыши
 void mouse(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         if (ammo > 0 && !gameWon && !gameOver) {
@@ -143,13 +144,28 @@ void mouse(int button, int state, int x, int y) {
                     score++;
                 }
             }
+            // Проверка, все ли утки мертвы
+            bool allDucksDead = true;
+            for (const auto& duck : ducks) {
+                if (duck.alive) {
+                    allDucksDead = false;
+                    break;
+                }
+            }
+            if (allDucksDead) {
+                gameWon = true;
+                elapsedTime = static_cast<double>(clock() - startTime) / CLOCKS_PER_SEC;
+            }
+            // Условие для завершения игры
             if (ammo == 0 && !gameWon) {
                 gameOver = true;
-                glutPostRedisplay(); // Обновляем окно для отображения сообщения
             }
+            glutPostRedisplay(); // Обновляем окно для отображения сообщения
         }
     }
 }
+
+
 
 
 // Функция для отрисовки земли
@@ -286,7 +302,7 @@ void display() {
     drawText("Ammo: " + to_string(ammo), 700, 50);
 
     // Проверка на проигрыш
-    if (gameOver) {
+    if (gameOver && !gameWon) {
         drawText("Game Over", windowWidth / 2 - 50, windowHeight / 2);
         cout << "Game Over" << endl; // Добавим отладочный вывод
     }
@@ -304,6 +320,7 @@ void display() {
 
     glFlush();
 }
+
 
 
 // Инициализация OpenGL
